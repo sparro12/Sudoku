@@ -19,7 +19,7 @@ class Sudoku:
         self.count = 0
 
     # returns current state of the puzzle
-    # @puzzle                           option for a manually entered puzzle instead of object's puzzle
+    # @puzzle                   option for a manually entered puzzle instead of object's puzzle
     def get_puzzle(self, puzzle = None):
         if puzzle == None:
             puzzle = self.puzzle
@@ -141,34 +141,26 @@ class Sudoku:
 if __name__ == "__main__" :
 
     N = 9
-    K = 40
+    K = 50
+    # creates puzzle with nodes missing and attempts to then solve it
     sudoku_puzzle = Sudoku(N, K)
     puzzle = sudoku_puzzle.create_puzzle()
     print(np.matrix(puzzle))
     one_solution = sudoku_puzzle.solve_remaining_cells(False, True, puzzle)
 
     # checks if there is only one solution for the current puzzle
-    count = 0
     timeout_count = 0
     while one_solution is False:
-        count += 1
-        # after 20 tries a new puzzle is generated
-        if count > 50:
-            sudoku_puzzle = Sudoku(N, K)
-            puzzle = sudoku_puzzle.create_puzzle()
-            print(np.matrix(puzzle))
-            one_solution = sudoku_puzzle.solve_remaining_cells(False, True, puzzle)
-            count = 0
-            # checks for a timeout
-            timeout_count += 1
-            if timeout_count == 5:
-                print("Timeout: Possibly due to excessive node removal.  Try decreasing K")
-                break
-        # tries to remove a different K nodes from puzzle
-        else:
-            puzzle = sudoku_puzzle.removeKcells()
-            one_solution = sudoku_puzzle.solve_remaining_cells(False, True, puzzle)
+        timeout_count += 1
+        sudoku_puzzle = Sudoku(N, K)
+        puzzle = sudoku_puzzle.create_puzzle()
+        print(np.matrix(puzzle))
+        one_solution = sudoku_puzzle.solve_remaining_cells(False, True, puzzle)
         print(one_solution)
+        # checks for a timeout
+        if timeout_count > 100:
+            print("Timeout: Possibly due to excessive node removal.  Try decreasing K")
+            break
 
     # prints final_puzzle that has only one solution
     final_puzzle = sudoku_puzzle.get_puzzle()
