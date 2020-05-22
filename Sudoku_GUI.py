@@ -11,7 +11,7 @@ import time
 
 # creates title bar for Sudoku puzzle
 def create_title():
-    title = Frame(gui, bg = "DodgerBlue2")
+    title = Frame(gui, bg = "DodgerBlue2", highlightbackground="black", highlightthickness=2)
     title.grid(row=0, column=0, columnspan = 3, sticky='nsew')
 
     title_text = Label(title, text = "Sparro Sudoku", font = title_font, bg = "DodgerBlue2")
@@ -71,7 +71,7 @@ def redraw_lines(event):
 
 # inputs puzzle into the canvas window with 0's as available user inputs
 def create_puzzle():
-    global puzzle_area, result_msg, puzzle, solution
+    global puzzle_area, result_msg, puzzle, solution, user_solution, puzzle_unit
     puzzle_area.destroy()
     result_msg.destroy()
     create_sub()
@@ -90,27 +90,27 @@ def create_puzzle():
     for i in range(N):
         for j in range(N):
             # calls function to redraw lines
-            puzzle_unit=Canvas(puzzle_area, width=60, height=10, highlightthickness=0, bg='DodgerBlue2')
-            puzzle_unit.bind("<Configure>", redraw_lines)
+            puzzle_unit[i][j]=Canvas(puzzle_area, width=60, height=10, highlightthickness=0, bg='DodgerBlue2')
+            puzzle_unit[i][j].bind("<Configure>", redraw_lines)
 
             # create thicker lines every 3 rows/columns for Sudoku purposes
             if i % 3 == 0 and i > 0:
-                puzzle_unit.create_line(0,0,0,0, tags=("horizontal"), width = 8)
+                puzzle_unit[i][j].create_line(0,0,0,0, tags=("horizontal"), width = 8)
             if j % 3 == 0 and j > 0:
-                puzzle_unit.create_line(0,0,0,0, tags=("vertical"), width = 8)
-                puzzle_unit.create_line(0,0,0,0, tags=("horizontal"), width = 1)
+                puzzle_unit[i][j].create_line(0,0,0,0, tags=("vertical"), width = 8)
+                puzzle_unit[i][j].create_line(0,0,0,0, tags=("horizontal"), width = 1)
             else:
-                puzzle_unit.create_line(0,0,0,0, tags=("horizontal"), width = 1)
-                puzzle_unit.create_line(0,0,0,0, tags=("vertical"), width = 1)
+                puzzle_unit[i][j].create_line(0,0,0,0, tags=("horizontal"), width = 1)
+                puzzle_unit[i][j].create_line(0,0,0,0, tags=("vertical"), width = 1)
 
-            puzzle_unit.grid(row=i, column=j, sticky="nsew")
+            puzzle_unit[i][j].grid(row=i, column=j, sticky="nsew")
 
             if puzzle[i][j] != 0:   # if node not removed a label is produced
-                label = Label(puzzle_unit, text = str(puzzle[i][j]), font = puzzle_font, bg = "DodgerBlue2")
+                label = Label(puzzle_unit[i][j], text = str(puzzle[i][j]), font = puzzle_font, bg = "DodgerBlue2")
                 label.place(relx = 0.5, rely = 0.5, anchor = CENTER)
                 user_solution[i][j] = label
             else:                   # creates user input for the nodes removed by gen_puzzle.py
-                entry = Entry(puzzle_unit, font = puzzle_font, justify = 'center', width = 1, bg = "DodgerBlue2")
+                entry = Entry(puzzle_unit[i][j], font = puzzle_font, justify = 'center', width = 1, bg = "DodgerBlue2")
                 entry.config(highlightthickness = 1, highlightbackground = 'LightCyan2', highlightcolor = 'LightCyan2')
                 entry.place(relx = 0.5, rely = 0.5, anchor = CENTER)
                 user_solution[i][j] = entry
@@ -126,21 +126,33 @@ def create_sub():
 
     # creates buttons for submitting and showing answers
     sub_button = Button(sub_right, text = "Submit", height = 2, width = 10, command = check_answer)
-    sub_show_answer = Button(sub_right, text = "Show Answer", height = 2, width = 10, command = show_answer)
+    sub_show_answer = Button(sub_right, text = "Show Answer", height = 2, width = 10, command = lambda: show_answer(sub_show_answer))
     sub_button.place(relx = 0.18, rely = 0.97, anchor = CENTER)
     sub_show_answer.place(relx = 0.82, rely = 0.97, anchor = CENTER)
 
 # validates user input and produces appropriate response
 def check_answer():
-    global result_msg, puzzle, solution
+    global result_msg, puzzle, solution, user_solution, puzzle_unit
     result_msg.destroy()
     create_sub()
+
+    # flag for whether all entries are correct
+    correct = True
 
     #verifies each user entry matches solution
     for i in range(N):
         for j in range(N):
             if puzzle[i][j] == 0:
-                if float(user_solution[i][j].get()) != solution[i][j]:
+                # checks if the user entered nothing
+                if len(user_solution[i][j].get()) == 0:
+                    result_msg = Label(sub_right, text = "Incorrect. Try again", font = sub_font, bg = "brown2")
+                    result_msg.place(relx = 0.5, rely=0.5, anchor=CENTER)
+                    sub_right.config(bg='brown2')
+                    puzzle_unit[i][j].config(bg = 'brown2')
+                    correct = False
+
+                # checks if user entered incorrect value
+                elif float(user_solution[i][j].get()) != solution[i][j]:
                     result_msg = Label(sub_right, text = "Incorrect. Try again", font = sub_font, bg = "brown2")
                     # checks if one of the entered values is an impossible Sudoku entry (i.e. > 9)
                     if float(user_solution[i][j].get()) >= 10:
@@ -148,12 +160,17 @@ def check_answer():
                         result_msg.config(wraplength = 250)
                     result_msg.place(relx = 0.5, rely = 0.5, anchor=CENTER)
                     sub_right.config(bg='brown2')
-                    return False
+                    puzzle_unit[i][j].config(bg = 'brown2')
+                    correct = False
+                # change back to blue if previously marked red
+                else:
+                    puzzle_unit[i][j].config(bg = 'DodgerBlue2')
+
     # if no user entered values are incorrect a success msg is shown
-    result_msg = Label(sub_right, text = "You're a genius!", font = sub_font, bg = "green")
-    result_msg.place(relx = 0.5, rely = 0.5, anchor=CENTER)
-    sub_right.config(bg='green')
-    return True
+    if correct == True:
+        result_msg = Label(sub_right, text = "You're a genius!", font = sub_font, bg = "green")
+        result_msg.place(relx = 0.5, rely = 0.5, anchor=CENTER)
+        sub_right.config(bg='green')
 
 
 # allows user to choose a puzzle by clicking on a specific puzzle label
@@ -165,47 +182,54 @@ def choose_puzzle(event, i):
     create_puzzle()
 
 # shows the answer of the puzzle to the user
-def show_answer():
+# @sub_show_answer          button for showing/hiding answer
+def show_answer(sub_show_answer):
     global puzzle, solution
     result_msg.destroy()
     sub_right.config(bg = 'gold2')
 
-    # Sudoku puzzle in sub_area
-    solution_area = Canvas(sub_right, width = 100, height = 100, background = "DodgerBlue2")
-    solution_title = Label(sub_right, text = "Puzzle Solution:", font = solution_title_font, bg = "gold2")
-    solution_title.place(relx = 0.5, rely = 0.04, anchor=CENTER)
-    solution_area.place(relx = 0.5, rely = 0.34, anchor=CENTER)
+    # adds ability to show and hide answer
+    if sub_show_answer['text'] == 'Hide Answer':
+        create_sub()
+    else:
+        sub_show_answer['text'] = 'Hide Answer'
 
-    # creates NxN grid distributed evenly in the canvas window for puzzle
-    idx = 0
-    while idx < N:
-        solution_area.rowconfigure(idx, weight=1)
-        solution_area.columnconfigure(idx, weight=1)
-        idx += 1
+        # Sudoku puzzle in sub_area
+        solution_area = Canvas(sub_right, width = 100, height = 100, background = "DodgerBlue2")
+        solution_title = Label(sub_right, text = "Puzzle Solution:", font = solution_title_font, bg = "gold2")
+        solution_title.place(relx = 0.5, rely = 0.04, anchor=CENTER)
+        solution_area.place(relx = 0.5, rely = 0.34, anchor=CENTER)
 
-    for i in range(N):
-        for j in range(N):
-            solution_unit = Canvas(solution_area, width = '32', height = '42', highlightthickness=0, bg='DodgerBlue2')
-            solution_unit.bind("<Configure>", redraw_lines)
+        # creates NxN grid distributed evenly in the canvas window for puzzle
+        idx = 0
+        while idx < N:
+            solution_area.rowconfigure(idx, weight=1)
+            solution_area.columnconfigure(idx, weight=1)
+            idx += 1
 
-            # create thicker lines every 3 rows/columns for Sudoku purposes
-            if i % 3 == 0 and i > 0:
-                solution_unit.create_line(0,0,0,0, tags=("horizontal"), width = 5)
-            if j % 3 == 0 and j > 0:
-                solution_unit.create_line(0,0,0,0, tags=("vertical"), width = 5)
-                solution_unit.create_line(0,0,0,0, tags=("horizontal"), width = 1)
-            else:
-                solution_unit.create_line(0,0,0,0, tags=("horizontal"), width = 1)
-                solution_unit.create_line(0,0,0,0, tags=("vertical"), width = 1)
+        for i in range(N):
+            for j in range(N):
+                solution_unit = Canvas(solution_area, width = '32', height = '42', highlightthickness=0, bg='DodgerBlue2')
+                solution_unit.bind("<Configure>", redraw_lines)
 
-            solution_unit.grid(row=i, column=j, sticky="nsew")
+                # create thicker lines every 3 rows/columns for Sudoku purposes
+                if i % 3 == 0 and i > 0:
+                    solution_unit.create_line(0,0,0,0, tags=("horizontal"), width = 5)
+                if j % 3 == 0 and j > 0:
+                    solution_unit.create_line(0,0,0,0, tags=("vertical"), width = 5)
+                    solution_unit.create_line(0,0,0,0, tags=("horizontal"), width = 1)
+                else:
+                    solution_unit.create_line(0,0,0,0, tags=("horizontal"), width = 1)
+                    solution_unit.create_line(0,0,0,0, tags=("vertical"), width = 1)
 
-            if puzzle[i][j] == 0:
-                label = Label(solution_unit, text = str(solution[i][j]), font = solution_font, bg = "brown2")
-            else:
-                label = Label(solution_unit, text = str(solution[i][j]), font = solution_font, bg = "DodgerBlue2")
+                solution_unit.grid(row=i, column=j, sticky="nsew")
 
-            label.place(relx = 0.5, rely = 0.5, anchor = CENTER)
+                if puzzle[i][j] == 0:
+                    label = Label(solution_unit, text = str(solution[i][j]), font = solution_font, bg = "brown2")
+                else:
+                    label = Label(solution_unit, text = str(solution[i][j]), font = solution_font, bg = "DodgerBlue2")
+
+                label.place(relx = 0.5, rely = 0.5, anchor = CENTER)
 
 
 if __name__ == "__main__":
@@ -221,10 +245,11 @@ if __name__ == "__main__":
     # global variables to be changed throughout user interaction
     puzzle = pl.puzzles[0]
     solution = pl.solutions[0]
-    user_solution = [ ['0' for i in range(N)] for j in range(N)]
+    user_solution = [ [0 for i in range(N)] for j in range(N)]
     puzzle_area = Canvas(gui)
     result_msg = Label(gui)
     sub_right = Frame(gui)
+    puzzle_unit = [ [0 for i in range(N)] for j in range(N)]
 
     # weight to puzzle_area so tkinter knows where to use unallocated space
     gui.grid_columnconfigure(0, weight=1)
