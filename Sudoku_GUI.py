@@ -111,7 +111,7 @@ def create_puzzle():
                 user_solution[i][j] = label
             else:                   # creates user input for the nodes removed by gen_puzzle.py
                 entry = Entry(puzzle_unit, font = puzzle_font, justify = 'center', width = 1, bg = "DodgerBlue2")
-                entry.config(highlightbackground = 'LightCyan2', highlightcolor = 'LightCyan2')
+                entry.config(highlightthickness = 1, highlightbackground = 'LightCyan2', highlightcolor = 'LightCyan2')
                 entry.place(relx = 0.5, rely = 0.5, anchor = CENTER)
                 user_solution[i][j] = entry
 
