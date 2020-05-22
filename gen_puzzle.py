@@ -1,7 +1,6 @@
 import numpy as np
 import random
 import math
-import tkinter
 import time
 #Sparro
 
@@ -16,8 +15,8 @@ class Sudoku:
     def __init__(self, N, K):
         self.N = N
         self.K = K
-        self.sqrtN = int(math.sqrt(N))
-        self.puzzle = [ [0 for i in range(N)] for j in range(N)]
+        self.sqrtN = int(math.sqrt(self.N))
+        self.puzzle = [ [0 for i in range(self.N)] for j in range(self.N)]
         self.count = 0
 
     # returns current state of the puzzle
@@ -40,7 +39,7 @@ class Sudoku:
 
     # These 3 function fill in diagonal blocks as they are independent from one another
     def fill_diagonal_blocks(self):
-        for i in range(0, N, self.sqrtN):
+        for i in range(0, self.N, self.sqrtN):
             self.fill_block(i, i)
 
     # fills in specified diagonal block
@@ -49,9 +48,9 @@ class Sudoku:
     def fill_block(self, row, col):
         for i in range(self.sqrtN):
             for j in range(self.sqrtN):
-                num = random.randrange(1, N+1)
+                num = random.randrange(1, self.N+1)
                 while self.possible_for_block(row, col, num, self.puzzle) is False:
-                    num = random.randrange(1, N+1)
+                    num = random.randrange(1, self.N+1)
                 self.puzzle[row+i][col+j] = num
 
     # checks to see if the random number is already within this block
@@ -74,10 +73,10 @@ class Sudoku:
     def solve_remaining_cells(self, solve_found = False, real_solve = False, puzzle = None):
         if puzzle == None:
             puzzle = self.puzzle
-        numlist = list(range(1, N+1))
+        numlist = list(range(1, self.N+1))
 
-        for row in range(N):
-            for col in range(N):
+        for row in range(self.N):
+            for col in range(self.N):
                 if puzzle[row][col] == 0:
                     random.shuffle(numlist)
                     for num in numlist:
@@ -103,11 +102,11 @@ class Sudoku:
     # @puzzle           option for a manually entered puzzle instead of object's puzzle
     def possible_overall(self, row, col, num, puzzle):
         # checks row for number
-        for i in range(N):
+        for i in range(self.N):
             if puzzle[row][i] == num:
                 return False
         # checks col for number
-        for i in range(N):
+        for i in range(self.N):
             if puzzle[i][col] == num:
                 return False
 
@@ -118,18 +117,18 @@ class Sudoku:
 
     # removes K cell values from the puzzle and changes them to 0 to allow for solve
     def removeKcells(self):
-        puzzle_to_solve = [ [0 for i in range(N)] for j in range(N)]
-        for i in range(N):
-            for j in range(N):
+        puzzle_to_solve = [ [0 for i in range(self.N)] for j in range(self.N)]
+        for i in range(self.N):
+            for j in range(self.N):
                 puzzle_to_solve[i][j] = self.puzzle[i][j]
-        cells_left = K
+        cells_left = self.K
 
         while cells_left != 0:
-            for i in range(N):
-                for j in range(N):
+            for i in range(self.N):
+                for j in range(self.N):
                     self.puzzle[i][j] = puzzle_to_solve[i][j]
-            cell_row = random.randrange(0, N)
-            cell_col = random.randrange(0, N)
+            cell_row = random.randrange(0, self.N)
+            cell_col = random.randrange(0, self.N)
 
             if self.puzzle[cell_row][cell_col] != 0:
                 self.puzzle[cell_row][cell_col] = 0
@@ -139,44 +138,54 @@ class Sudoku:
 
         return puzzle_to_solve
 
-
+     #test code for class above to generate Sudoku puzzle with only one solution
 if __name__ == "__main__" :
 
-     start = time.time()
-     # Dimensions of NxN sudoku matrix
-     N = 9
-     # The number of nodes to be removed from puzzle
-     K = 50
+    start = time.time()
+    # Dimensions of NxN sudoku matrix
+    N = 9
 
-     # creates puzzle with nodes missing and attempts to then solve it
-     sudoku_puzzle = Sudoku(N, K)
-     puzzle = sudoku_puzzle.create_puzzle()
-     print(np.matrix(puzzle))
-     one_solution = sudoku_puzzle.solve_remaining_cells(False, True, puzzle)
+    # Nodes remaining
+    # @Easy - 32-36 nodes removed
+    # @Medium - 29-32 nodes removed
+    # @Hard - 27-28 nodes removed
+    nodes_left = 27
 
-     # checks if there is only one solution for the current puzzle
-     try_count = 0
-     while one_solution is False:
-         try_count += 1
-         sudoku_puzzle.count = 0  #sets # of solutions to 0 for next check
-         # after 20 tries a new puzzle is generated
-         if try_count % 50 == 0:
-             # checks for a timeout
-             if try_count >= 300:
-                 print("Timeout: Possibly due to excessive node removal.  Try decreasing K")
-                 break
-             sudoku_puzzle = Sudoku(N, K)
-             puzzle = sudoku_puzzle.create_puzzle()
-             print(np.matrix(puzzle))
-             one_solution = sudoku_puzzle.solve_remaining_cells(False, True, puzzle)
-         # tries to remove a different K nodes from puzzle
-         else:
-             puzzle = sudoku_puzzle.removeKcells()
-             one_solution = sudoku_puzzle.solve_remaining_cells(False, True, puzzle)
-         print(one_solution)
+    # The number of nodes to be removed from puzzle
+    K = N*N - nodes_left
 
-     # prints final_puzzle that has only one solution
-     if try_count < 300:
+    # creates puzzle with nodes missing and attempts to then solve it
+    sudoku_puzzle = Sudoku(N, K)
+    puzzle = sudoku_puzzle.create_puzzle()
+    print(np.matrix(puzzle))
+    one_solution = sudoku_puzzle.solve_remaining_cells(False, True, puzzle)
+
+    # checks if there is only one solution for the current puzzle
+    try_count = 0
+    while one_solution is False:
+        try_count += 1
+        sudoku_puzzle.count = 0  #sets # of solutions to 0 for next check
+        # after 20 tries a new puzzle is generated
+        if try_count % 50 == 0:
+            # checks for a timeout
+            if try_count >= 300:
+                print("Timeout: Possibly due to excessive node removal.  Try decreasing K")
+                break
+            sudoku_puzzle = Sudoku(N, K)
+            puzzle = sudoku_puzzle.create_puzzle()
+            print(np.matrix(puzzle))
+            one_solution = sudoku_puzzle.solve_remaining_cells(False, True, puzzle)
+        # tries to remove a different K nodes from puzzle
+        else:
+            puzzle = sudoku_puzzle.removeKcells()
+            one_solution = sudoku_puzzle.solve_remaining_cells(False, True, puzzle)
+        print(one_solution)
+
+    # computer makes a sound when generation is complete
+    print('\a')
+
+    # prints final_puzzle that has only one solution
+    if try_count < 300:
         final_puzzle = sudoku_puzzle.get_puzzle()
         print("\nN = "+str(N))
         print("K = "+str(K))
@@ -185,6 +194,12 @@ if __name__ == "__main__" :
         print(np.matrix(puzzle))
         print("Final solved puzzle = ")
         print(np.matrix(final_puzzle))
+        # gives comma separated matrices to copy into puzzle list
+        print("\nThe following two matrices can be copied into puzzle_list")
+        print("Puzzle = ")
+        print(puzzle)
+        print("Solution = ")
+        print(final_puzzle)
 
-        elapsed_time = (time.time() - start)
-        print("Run time: {:.4f} seconds".format(elapsed_time))
+    elapsed_time = (time.time() - start)
+    print("Run time: {:.4f} seconds".format(elapsed_time))
