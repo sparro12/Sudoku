@@ -71,7 +71,7 @@ def redraw_lines(event):
 
 # inputs puzzle into the canvas window with 0's as available user inputs
 def create_puzzle():
-    global puzzle_area, result_msg, puzzle, solution, user_solution, puzzle_unit
+    global puzzle_area, result_msg, puzzle, solution, user_solution, entry
     puzzle_area.destroy()
     result_msg.destroy()
     create_sub()
@@ -90,30 +90,30 @@ def create_puzzle():
     for i in range(N):
         for j in range(N):
             # calls function to redraw lines
-            puzzle_unit[i][j]=Canvas(puzzle_area, width=60, height=10, highlightthickness=0, bg='DodgerBlue2')
-            puzzle_unit[i][j].bind("<Configure>", redraw_lines)
+            puzzle_unit=Canvas(puzzle_area, width=60, height=10, highlightthickness=0, bg='DodgerBlue2')
+            puzzle_unit.bind("<Configure>", redraw_lines)
 
             # create thicker lines every 3 rows/columns for Sudoku purposes
             if i % 3 == 0 and i > 0:
-                puzzle_unit[i][j].create_line(0,0,0,0, tags=("horizontal"), width = 8)
+                puzzle_unit.create_line(0,0,0,0, tags=("horizontal"), width = 8)
             if j % 3 == 0 and j > 0:
-                puzzle_unit[i][j].create_line(0,0,0,0, tags=("vertical"), width = 8)
-                puzzle_unit[i][j].create_line(0,0,0,0, tags=("horizontal"), width = 1)
+                puzzle_unit.create_line(0,0,0,0, tags=("vertical"), width = 8)
+                puzzle_unit.create_line(0,0,0,0, tags=("horizontal"), width = 1)
             else:
-                puzzle_unit[i][j].create_line(0,0,0,0, tags=("horizontal"), width = 1)
-                puzzle_unit[i][j].create_line(0,0,0,0, tags=("vertical"), width = 1)
+                puzzle_unit.create_line(0,0,0,0, tags=("horizontal"), width = 1)
+                puzzle_unit.create_line(0,0,0,0, tags=("vertical"), width = 1)
 
-            puzzle_unit[i][j].grid(row=i, column=j, sticky="nsew")
+            puzzle_unit.grid(row=i, column=j, sticky="nsew")
 
             if puzzle[i][j] != 0:   # if node not removed a label is produced
-                label = Label(puzzle_unit[i][j], text = str(puzzle[i][j]), font = puzzle_font, bg = "DodgerBlue2")
+                label = Label(puzzle_unit, text = str(puzzle[i][j]), font = puzzle_font, bg = "DodgerBlue2")
                 label.place(relx = 0.5, rely = 0.5, anchor = CENTER)
                 user_solution[i][j] = label
             else:                   # creates user input for the nodes removed by gen_puzzle.py
-                entry = Entry(puzzle_unit[i][j], font = puzzle_font, justify = 'center', width = 1, bg = "DodgerBlue2")
-                entry.config(highlightthickness = 1, highlightbackground = 'LightCyan2', highlightcolor = 'LightCyan2')
-                entry.place(relx = 0.5, rely = 0.5, anchor = CENTER)
-                user_solution[i][j] = entry
+                entry[i][j] = Entry(puzzle_unit, font = puzzle_font, justify = 'center', width = 1, bg = "DodgerBlue2")
+                entry[i][j].config(highlightthickness = 0, highlightbackground = 'LightCyan2', highlightcolor = 'LightCyan2')
+                entry[i][j].place(relx = 0.5, rely = 0.5, anchor = CENTER)
+                user_solution[i][j] = entry[i][j]
 
 # creates submisstion area or refreshes its state
 def create_sub():
@@ -132,12 +132,21 @@ def create_sub():
 
 # validates user input and produces appropriate response
 def check_answer():
-    global result_msg, puzzle, solution, user_solution, puzzle_unit
+    global result_msg, puzzle, solution, user_solution, entry
     result_msg.destroy()
     create_sub()
 
     # flag for whether all entries are correct
     correct = True
+
+    # flag for if a value is greater than 9
+    ten_plus = False
+
+    # flag for if all user entries are not filled in
+    incomplete = False
+
+    # flag to check for a non-numerical entry
+    invalid = False
 
     #verifies each user entry matches solution
     for i in range(N):
@@ -145,35 +154,57 @@ def check_answer():
             if puzzle[i][j] == 0:
                 # checks if the user entered nothing
                 if len(user_solution[i][j].get()) == 0:
-                    result_msg = Label(sub_right, text = "Incorrect. Try again", font = sub_font, bg = "brown2")
-                    result_msg.place(relx = 0.5, rely=0.5, anchor=CENTER)
-                    sub_right.config(bg='brown2')
-                    puzzle_unit[i][j].config(bg = 'brown2')
+                    entry[i][j].config(bg = 'DodgerBlue2')
+                    incomplete = True
                     correct = False
 
-                # checks if user entered incorrect value
-                elif float(user_solution[i][j].get()) != solution[i][j]:
-                    result_msg = Label(sub_right, text = "Incorrect. Try again", font = sub_font, bg = "brown2")
-                    # checks if one of the entered values is an impossible Sudoku entry (i.e. > 9)
-                    if float(user_solution[i][j].get()) >= 10:
-                        result_msg = Label(sub_right, text = "One of your entered values is greater than 10", font = sub_font, bg = "brown2")
-                        result_msg.config(wraplength = 250)
-                    result_msg.place(relx = 0.5, rely = 0.5, anchor=CENTER)
-                    sub_right.config(bg='brown2')
-                    puzzle_unit[i][j].config(bg = 'brown2')
-                    correct = False
-                # change back to blue if previously marked red
-                else:
-                    puzzle_unit[i][j].config(bg = 'DodgerBlue2')
+                elif len(user_solution[i][j].get()) != 0:
+                    # tries to convert user entry to a float
+                    try:
+                        val = float(user_solution[i][j].get())
+                        # checks if user entered incorrect value
+                        if val != solution[i][j]:
+                            result_msg = Label(sub_right, text = "Incorrect. Try again", font = sub_font, bg = "brown2")
+                            # checks if one of the entered values is an impossible Sudoku entry (i.e. > 9)
+                            if float(user_solution[i][j].get()) >= 10:
+                                ten_plus = True
+                            sub_right.config(bg='brown2')
+                            entry[i][j].config(bg = 'brown2')
+                            correct = False
+                        # change to green if correct
+                        else:
+                            entry[i][j].config(bg = 'green')
+
+                    # occurs when user entered non-numerical value
+                    except:
+                        entry[i][j].config(bg = 'gold2')
+                        invalid = True
+                        correct = False
+
+    if incomplete == True:
+        sub_right.config(bg = 'gold2')
+        result_msg = Label(sub_right, text = "Incomplete. Please fill in remaining cells", font = sub_font, bg = "gold2")
+        result_msg.config(wraplength = 250)
+
+    if ten_plus == True:
+        sub_right.config(bg = 'brown2')
+        result_msg = Label(sub_right, text = "One of your values is greater than 9", font = sub_font, bg = "brown2")
+        result_msg.config(wraplength = 250)
+
+    if invalid == True:
+        sub_right.config(bg = 'gold2')
+        result_msg = Label(sub_right, text = "Invalid entry. You entered a non-numerical value", font = sub_font, bg = "gold2")
+        result_msg.config(wraplength = 250)
 
     # if no user entered values are incorrect a success msg is shown
     if correct == True:
         result_msg = Label(sub_right, text = "You're a genius!", font = sub_font, bg = "green")
-        result_msg.place(relx = 0.5, rely = 0.5, anchor=CENTER)
         sub_right.config(bg='green')
 
+    result_msg.place(relx = 0.5, rely = 0.5, anchor=CENTER)
 
 # allows user to choose a puzzle by clicking on a specific puzzle label
+# @i                        index in puzzles/solutions array
 def choose_puzzle(event, i):
     global puzzle, solution
     puzzle = pl.puzzles[i]
@@ -249,7 +280,7 @@ if __name__ == "__main__":
     puzzle_area = Canvas(gui)
     result_msg = Label(gui)
     sub_right = Frame(gui)
-    puzzle_unit = [ [0 for i in range(N)] for j in range(N)]
+    entry = [ [0 for i in range(N)] for j in range(N)]
 
     # weight to puzzle_area so tkinter knows where to use unallocated space
     gui.grid_columnconfigure(0, weight=1)
